@@ -517,47 +517,4 @@ with tab3:
     if st.checkbox('**Annuitaire hypotheek**'):
         annuitaire_hypotheek(hoofdsom, tijdsperiode, rentepercentage)
         
-    if st.checkbox("Wat zijn de verschillen?"):
-        tot_rente_annuiteit, tot_bruto_mndlasten_annuiteit = annuitaire_hypotheek(hoofdsom, tijdsperiode, rentepercentage)
-        tot_rente, tot_bruto_mndlasten = lineaire_hypotheek(hoofdsom, tijdsperiode, rentepercentage)
-        
-        totale_brutolasten_lineair = tot_bruto_mndlasten
-        totale_rente_lineair = tot_rente
-        
-        totale_rente_annuiteit = tot_rente_annuiteit 
-        totale_brutolasten_annuiteit = tot_bruto_mndlasten_annuiteit 
-        
-        verschil_bruto = totale_brutolasten_annuiteit - totale_brutolasten_lineair
-        verschil_rente = totale_rente_annuiteit - totale_rente_lineair
-        tot_verschil = verschil_bruto + verschil_rente
-        
-        vergelijking = pd.DataFrame({
-                        'Kosten':['Tot. brutolasten','Tot. rente','Resultaat'],
-                        'Annuïtair': [totale_brutolasten_annuiteit, totale_rente_annuiteit,0],
-                        'Lineair': [totale_brutolasten_lineair, totale_rente_lineair,0],
-                        'Opbrengst/Verlies': [verschil_bruto, verschil_rente, tot_verschil]})
-        vergelijking['Annuïtair'] = vergelijking['Annuïtair'].apply(lambda x: f"€{x:,.2f}".replace('.',',').replace(',', '.',1))
-        vergelijking['Lineair'] = vergelijking['Lineair'].apply(lambda x: f"€{x:,.2f}".replace('.',',').replace(',', '.',1))
-        vergelijking['Opbrengst/Verlies'] = vergelijking['Opbrengst/Verlies'].apply(lambda x: f"€{x:,.2f}".replace('.',',').replace(',', '.',1))
-        st.dataframe(vergelijking.set_index(vergelijking.columns[0]))
-        
-        
 
-
-#%% financieringspercentages
-import pandas as pd
-VOOR_AOW = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Voor AOW')
-NA_AOW = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Na AOW')
-studieschuldtabel = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Studieschuld') 
-annuiteitentabel = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Annuiteitenfactor') 
-studieschuldtabel['Debetrente'] = studieschuldtabel['Debetrente'].apply(lambda x: f"{x:.3f}".replace('.',','))
-        
-# max LTI & LTV allebei weergeven
-# LTI verplaatsen
-# Eindantwoord weergeven    
-
-#%%
-
-
-#aflossingen, rentebedragen, resterende_schulden = lineaire_hypotheek(hoofdsom, looptijd_jaren, rentepercentage)
-#print_aflossingstabel(aflossingen, rentebedragen, resterende_schulden)
