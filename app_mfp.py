@@ -4,31 +4,21 @@ Created on Sun Feb  4 10:05:17 2024
 
 @author: Gebruiker
 """
-#%%
-import numpy as np
-import math
-import pandas as pd
-import openpyxl
-import base64
-import io
-#%%
-
-import numpy as np
-import math
 import streamlit as st
+import openpyxl
+import numpy as np
+import math
 import pandas as pd
 import altair as alt
 import base64
 import io
 
 
-
-
 st.set_page_config(page_title="Financiële Planning")
 
 st.title("Financiële Planning")
 
-st.markdown("Voer uw gegevens in om te berekenen hoeveel u maximaal kunt lenen en hoe groot uw eigenwoningsschuld zal zijn!")
+st.markdown("Voor uw gegevens in om te berekenen hoeveel u maximaal kunt lenen en hoe groot uw eigenwoningsschuld zal zijn!")
 
 tab1, tab2, tab3 = st.tabs(["Hypotheek","Eigenwoningsschuld","Aflossing"])
 
@@ -38,11 +28,38 @@ AOW_leeftijd = 68
 
 with tab1:
     column1, column2, column3 = st.columns(3)
-    VOOR_AOW = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Voor AOW')
-    NA_AOW = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Na AOW')
-    annuiteitentabel = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Annuiteitenfactor') 
-    studieschuldtabel = pd.read_excel(r"C:\Users\Gebruiker\OneDrive - Office 365 Fontys\Documenten\Privé\Programmeren\Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Studieschuld') 
-    studieschuldtabel['Debetrente'] = studieschuldtabel['Debetrente'].apply(lambda x: f"{x:.3f}".replace('.',','))
+
+    workbook = openpyxl.load_workbook('Financieringspercentages_Annuiteitenfactor.xlsx')
+    VOOR_AOW = workbook['Voor AOW']
+    NA_AOW = workbook['Na AOW']
+    annuiteitentabel = workbook['Annuiteitenfactor']
+    studieschuldtabel = workbook['Studieschuld'] 
+    
+   # VOOR_AOW = pd.read_excel("Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Voor AOW')
+   # NA_AOW = pd.read_excel("Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Na AOW')
+   # annuiteitentabel = pd.read_excel("Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Annuiteitenfactor') 
+   # studieschuldtabel = pd.read_excel("Financieringspercentages_Annuiteitenfactor.xlsx",sheet_name='Studieschuld') 
+   # studieschuldtabel['Debetrente'] = studieschuldtabel['Debetrente'].apply(lambda x: f"{x:.3f}".replace('.',','))
+    kolomindex_debetrente = None
+    for kolom in studieschuldtabel.iter_cols(min_row=1, max_row=1):
+        for cel in kolom:
+            if cel.value == 'Debetrente':
+                kolomindex_debetrente = cel.column
+                break
+    
+    # Controleer of 'Debetrente' is gevonden
+    if kolomindex_debetrente is not None:
+        # Verwerk de kolom 'Debetrente'
+        for rij in studieschuldtabel.iter_rows(min_row=2, min_col=kolomindex_debetrente, max_col=kolomindex_debetrente):
+            cel = rij[0]  # Omdat we maar één kolom doorlopen, is er maar één cel in de rij
+            waarde = cel.value
+            # Voer verdere verwerking uit met de waarde, bijvoorbeeld formattering
+            geformatteerde_waarde = f"{waarde:.3f}".replace('.', ',')
+            # Plaats de geformatteerde waarde terug in de cel of doe iets anders mee
+            cel.value = geformatteerde_waarde
+    else:
+        print("Kolom 'Debetrente' niet gevonden in het werkblad 'Studieschuld'.")
+
     
     with column1:
         st.subheader("Partnerschap")
@@ -50,7 +67,8 @@ with tab1:
     # input vanuit gast
         gez_ink = st.number_input("_Gezamenlijk bruto jaarinkomen_", 0,999999999,0)
         toetsinkomen = 500 * math.floor(gez_ink/500)
-        #st.write(f"Het gezamenlijk brutojaarinkomen is €{gez_ink}")
+        st.write(f"Het gezamenlijk brutojaarinkomen is €{gez_ink}")
+        st.write(f"Het toetsinkomen is €{toetsinkomen}")
     # leeftijd nodig voor AOW-leeftijd: JA/NEE    
         leeftijd = st.number_input("_Leeftijd oudste partner_",0,120,18)
     #    st.write(f"De oudste partner is {leeftijd} jaar.")
@@ -72,7 +90,7 @@ with tab1:
             debetrente = 5
             debetrente = "{:,.3f}".format(debetrente)
             debetrente = debetrente.replace('.', ',')
-        #    st.write(f"De debetrente is {debetrente}%")
+            st.write(f"De debetrente is {debetrente}%")
     # Als de tijd groter is dan 10 jaar, dan de werkelijke rente    
         else:
             if rentepercentage < 1.50:
@@ -84,21 +102,37 @@ with tab1:
                 debetrente = "{:,.3f}".format(debetrente)
                 debetrente = debetrente.replace('.', ',')
                 
-           # st.write(f"De debetrente is {debetrente}%")
+            st.write(f"De debetrente is {debetrente}%")
 
     # leeftijd controleren voor juiste financieringslastpercentage.
-        if leeftijd < AOW_leeftijd:
-            woonquote = VOOR_AOW.loc[VOOR_AOW['toetsinkomen'] == toetsinkomen, debetrente].values[0]
-            #st.write(f"Het financieringslastpercentage is {woonquote}")
-        else:
-            woonquote = NA_AOW.loc[NA_AOW['toetsinkomen'] == toetsinkomen, debetrente].values[0]
-            #st.write(f"Het financieringslastpercentage is {woonquote}")
-            
-        finan_ink = gez_ink * woonquote
-        #st.write(f"Hiermee komt het financieringslastinkomen op €{finan_ink:.2f}")
+        def vind_woonquote(worksheet, toetsinkomen, debetrente):
+        # Zoek de rij die overeenkomt met het toetsinkomen
+            for row in range(2, worksheet.max_row + 1):
+                if worksheet.cell(row, 1).value == toetsinkomen:
+                    # Als toetsinkomen gevonden is, zoek de debetrente in dezelfde rij
+                    for col in range(2, worksheet.max_column + 1):
+                        if worksheet.cell(1, col).value == str(debetrente):
+                            # Als debetrente gevonden is, return de waarde
+                            return worksheet.cell(row, col).value
         
-        finan_ink_maand = finan_ink/12
-        #st.write(f"Maandelijks komt dit uit op €{finan_ink_maand:.2f}")
+        # Gebruik de functie om de woonquote te vinden
+        if leeftijd < AOW_leeftijd:
+            woonquote = vind_woonquote(VOOR_AOW, toetsinkomen, debetrente)
+                #st.write(f"Het financieringslastpercentage is {woonquote}")
+        else:
+            woonquote = vind_woonquote(NA_AOW, toetsinkomen, debetrente)
+       
+        if woonquote is not None:    
+            finan_ink = gez_ink * woonquote
+            #st.write(f"Hiermee komt het financieringslastinkomen op €{finan_ink:.2f}")
+            finan_ink_maand = finan_ink/12
+            st.write(f"Maandelijks komt dit uit op €{finan_ink_maand:.2f}")
+        else:
+            st.write("er is iets fout gegaan.")
+            st.write(f"gez. inkomen = {gez_ink}. En de woonquote is {woonquote}")
+        
+     #   finan_ink_maand = finan_ink/12
+     #   st.write(f"Maandelijks komt dit uit op €{finan_ink_maand:.2f}")
         
         
     with column3:
@@ -109,14 +143,30 @@ with tab1:
         schuld_2 = st.number_input('_Oplopende schuld 2 (bijv. kredietlimiet)_',value=0)
         schuld_3 = st.number_input('_Aflopende schuld (bijv. aflopend krediet)_',value=0)
         schuld_4 = st.number_input(label='_Maandelijkse last studieschuld_',value=0)
-    # juiste factor/opslag op maandelijkse lasten studieschuld mbt tot debetrente    
+    # juiste factor/opslag op maandelijkse lasten studieschuld mbt tot debetrente  
+        def bereken_mnd_studieschuld(studieschuldtabel, debetrente, schuld_4):
+            # Zoek de factor_studieschuld op basis van debetrente
+            factor_studieschuld = None
+            for row in range(1, studieschuldtabel.max_row + 1):
+                if studieschuldtabel.cell(row, 1).value == debetrente:
+                    factor_studieschuld = studieschuldtabel.cell(row, 2).value
+                    break
+        
+            # Bereken mnd_studieschuld indien factor_studieschuld gevonden is
+            if factor_studieschuld is not None:
+                return factor_studieschuld * schuld_4
+            else:
+                return 0
+        
+        # Bereken totale maandelijkse schuld
         if schuld_4 is not None:
-            factor_studieschuld = studieschuldtabel.loc[studieschuldtabel['Debetrente'] == debetrente,'Opslag'].values[0]
-            mnd_studieschuld = factor_studieschuld*schuld_4
+            mnd_studieschuld = bereken_mnd_studieschuld(studieschuldtabel, debetrente, schuld_4)
         else:
             mnd_studieschuld = 0
-        tot_mnd_schuld = schuld_1*0.02 + schuld_2*0.02 + schuld_3 + mnd_studieschuld
         
+        tot_mnd_schuld = schuld_1 * 0.02 + schuld_2 * 0.02 + schuld_3 + mnd_studieschuld
+        
+    # box maken    
         st.markdown(
             """
             <style>
@@ -134,12 +184,21 @@ with tab1:
         st.write(f'<div class="container-style">De totale maandelijkse schuld is €{tot_mnd_schuld}</div>', unsafe_allow_html=True)
     
         st.write("---------------------------")
-    # annuïteitenfactor   
-        ann_bedrag = finan_ink_maand - tot_mnd_schuld
-        ann_rente = round(rentepercentage/100,3)
         
-        ann_factor = annuiteitentabel.loc[annuiteitentabel['Rentepercentage'] == ann_rente, f'{tijdsperiode}'].values[0]
-        hypo_LTI = ann_factor*ann_bedrag
+   # Definieer functie om de annuïteitenfactor te vinden
+        def vind_annuiteitenfactor(annuiteitentabel, ann_rente, tijdsperiode):
+            # Converteer tijdsperiode naar integer
+            tijdsperiode_index = int(tijdsperiode)
+            for row in range(1, annuiteitentabel.max_row + 1):
+                if annuiteitentabel.cell(row=row, column=1).value == ann_rente:
+                    return annuiteitentabel.cell(row=row, column=tijdsperiode_index).value
+        
+        # Bereken de annuïteitenfactor en hypotheeklasten-tot-inkomen ratio (LTI)
+        ann_bedrag = finan_ink_maand - tot_mnd_schuld
+        ann_rente = round(rentepercentage / 100, 3)
+        
+        ann_factor = vind_annuiteitenfactor(annuiteitentabel, ann_rente, tijdsperiode)
+        hypo_LTI = ann_factor * ann_bedrag
         
     # uiteindelijke button om te zien hoeveel er maximaal geleend kan worden.    
     with column1:
@@ -517,4 +576,3 @@ with tab3:
     if st.checkbox('**Annuitaire hypotheek**'):
         annuitaire_hypotheek(hoofdsom, tijdsperiode, rentepercentage)
         
-
